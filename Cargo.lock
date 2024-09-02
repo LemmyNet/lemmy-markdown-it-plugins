@@ -276,7 +276,6 @@ name = "markdown-it-sub"
 version = "0.1.0"
 dependencies = [
  "markdown-it",
- "regex",
 ]
 
 [[package]]
