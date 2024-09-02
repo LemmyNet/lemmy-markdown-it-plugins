@@ -36,6 +36,10 @@ mod test {
 
     #[rstest]
     #[case("~foo~", "<p><sub>foo</sub></p>\n")]
+    #[case("foo~", "<p>foo~</p>\n")]
+    #[case("~foo", "<p>~foo</p>\n")]
+    #[case("foo~bar~", "<p>foo<sub>bar</sub></p>\n")]
+    #[case("~~foo~bar~~~", "<p><s>foo<sub>bar</sub></s></p>\n")]
     fn test(#[case] md_str: &str, #[case] expected: &str) {
         let result = MARKDOWN_PARSER.parse(md_str).xrender();
 
