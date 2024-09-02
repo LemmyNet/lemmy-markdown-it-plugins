@@ -1,7 +1,10 @@
-[package]
-name = "markdown-it-sub"
-version = "0.1.0"
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+name = "lemmy-markdown-it-plugins"
 edition = "2021"
 
-[dependencies]
-markdown-it = "0.6.1"
+[workspace.dependencies]
+markdown-it = { version = "0.6", default-features = false }
+rstest = "0.22.0"

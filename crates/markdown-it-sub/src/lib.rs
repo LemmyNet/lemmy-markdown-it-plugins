@@ -22,6 +22,7 @@ mod test {
         plugins::{cmark, extra},
         MarkdownIt,
     };
+    use rstest::rstest;
     use std::sync::LazyLock;
 
     static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
@@ -33,10 +34,11 @@ mod test {
         parser
     });
 
-    #[test]
-    fn foo() {
-        let result = MARKDOWN_PARSER.parse("~foo~").xrender();
+    #[rstest]
+    #[case("~foo~", "<p><sub>foo</sub></p>\n")]
+    fn test(#[case] md_str: &str, #[case] expected: &str) {
+        let result = MARKDOWN_PARSER.parse(md_str).xrender();
 
-        assert_eq!(result, String::from("<p><sub>foo</sub></p>\n"));
+        assert_eq!(result, String::from(expected));
     }
 }
