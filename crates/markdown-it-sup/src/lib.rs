@@ -1,18 +1,18 @@
 use markdown_it::{generics::inline::emph_pair, MarkdownIt, Node, NodeValue, Renderer};
 
 #[derive(Debug)]
-pub struct Sub;
+pub struct Sup;
 
-impl NodeValue for Sub {
+impl NodeValue for Sup {
     fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
-        fmt.open("sub", &node.attrs);
+        fmt.open("sup", &node.attrs);
         fmt.contents(&node.children);
-        fmt.close("sub");
+        fmt.close("sup");
     }
 }
 
 pub fn add(md: &mut MarkdownIt) {
-    emph_pair::add_with::<'~', 1, true>(md, || Node::new(Sub));
+    emph_pair::add_with::<'^', 1, true>(md, || Node::new(Sup));
 }
 
 #[cfg(test)]
@@ -35,11 +35,10 @@ mod test {
     });
 
     #[rstest]
-    #[case("~foo~", "<p><sub>foo</sub></p>\n")]
-    #[case("foo~", "<p>foo~</p>\n")]
-    #[case("~foo", "<p>~foo</p>\n")]
-    #[case("foo~bar~", "<p>foo<sub>bar</sub></p>\n")]
-    #[case("~~foo~bar~~~", "<p><s>foo<sub>bar</sub></s></p>\n")]
+    #[case("^foo^", "<p><sup>foo</sup></p>\n")]
+    #[case("foo^", "<p>foo^</p>\n")]
+    #[case("^foo", "<p>^foo</p>\n")]
+    #[case("foo^bar^", "<p>foo<sup>bar</sup></p>\n")]
     fn test(#[case] md_str: &str, #[case] expected: &str) {
         let result = MARKDOWN_PARSER.parse(md_str).xrender();
 

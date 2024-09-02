@@ -1,0 +1,10 @@
+[package]
+name = "markdown-it-sup"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+markdown-it.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true
