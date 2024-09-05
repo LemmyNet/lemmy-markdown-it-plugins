@@ -1,0 +1,19 @@
+[package]
+name = "markdown-it-block-spoiler"
+version = "0.1.0"
+edition.workspace = true
+
+[features]
+default = ["non-browser"]
+non-browser = ["dep:regex"]
+browser = ["dep:js-sys"]
+
+[dependencies]
+markdown-it.workspace = true
+js-sys = { version = "0.3", optional = true }
+regex = { version = "1.10", optional = true }
+cfg-if = "1.0.0"
+itertools = "0.13.0"
+
+[dev-dependencies]
+rstest.workspace = true
