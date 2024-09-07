@@ -35,9 +35,11 @@ fn is_valid_block_start(line: &str) -> bool {
     cfg_if! {
         if #[cfg(feature = "browser")] {
             use js_sys::RegExp;
-            static SPOILER_START_REGEX: LazyLock<RegExp> = LazyLock::new(|| RegExp::new(REGEX_STR, "u"));
+            thread_local! {
+                static SPOILER_START_REGEX: LazyLock<RegExp> = LazyLock::new(|| RegExp::new(REGEX_STR, "u"));
+            }
 
-            SPOILER_START_REGEX.test(line)
+            SPOILER_START_REGEX.with(|reg_exp| reg_exp.test(line))
         } else {
             use regex::Regex;
             static SPOLIER_START_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_STR).expect("Invalid regex str!"));

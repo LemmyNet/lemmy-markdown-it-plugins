@@ -41,9 +41,11 @@ fn get_texts(search_str: &str) -> Option<(String, String)> {
     cfg_if! {
         if #[cfg(feature = "browser")] {
             use js_sys::RegExp;
-            static RUBY_REGEX = LazyLock<RegExp> = LazyLock::new(|| RegExp::new(REGEX_PATTERN, "u"));
+            thread_local! {
+                static RUBY_REGEX: LazyLock<RegExp> = LazyLock::new(|| RegExp::new(REGEX_PATTERN, "u"));
+            }
 
-            let capture_groups = RUBY_REGEX.exec(search_str)?;
+            let capture_groups = RUBY_REGEX.with(|reg_exp| reg_exp.exec(search_str))?;
             Some((capture_groups.get(1).as_string()?, capture_groups.get(2).as_string()?))
         } else {
             use regex::Regex;
