@@ -1,8 +1,8 @@
 [workspace]
 members = ["crates/*"]
+resolver = "2"
 
 [workspace.package]
-name = "lemmy-markdown-it-plugins"
 edition = "2021"
 
 [workspace.dependencies]
