@@ -15,7 +15,7 @@ pub struct BlockSpoiler {
 }
 
 impl NodeValue for BlockSpoiler {
-    fn render(&self, node: &markdown_it::Node, fmt: &mut dyn markdown_it::Renderer) {
+    fn render(&self, node: &Node, fmt: &mut dyn markdown_it::Renderer) {
         fmt.cr();
         fmt.open("details", &node.attrs);
         fmt.open("summary", &[]);
@@ -30,7 +30,7 @@ impl NodeValue for BlockSpoiler {
 struct BlockSpoilerScanner;
 
 fn is_valid_block_start(line: &str) -> bool {
-    const REGEX_STR: &str = r"^::: +spolier +\S+$";
+    const REGEX_STR: &str = r"^::: +spoiler +(?:\S+ *)+$";
 
     cfg_if! {
         if #[cfg(feature = "browser")] {
@@ -48,7 +48,7 @@ fn is_valid_block_start(line: &str) -> bool {
 }
 
 impl BlockRule for BlockSpoilerScanner {
-    fn run(state: &mut BlockState) -> Option<(markdown_it::Node, usize)> {
+    fn run(state: &mut BlockState) -> Option<(Node, usize)> {
         const SPOILER_GATE_END: &str = ":::";
 
         // Using trim_end since get_line already trims the start
@@ -60,22 +60,23 @@ impl BlockRule for BlockSpoilerScanner {
 
         let spoiler_content_start_index = state.line + 1;
         let mut spoiler_depth: usize = 0;
-        let spoiler_content_end_index = (spoiler_content_start_index..state.line_offsets.len())
-            .map(|i| spoiler_content_start_index + i)
-            .find(
-                |&i| match (state.get_line(i).trim_end(), &mut spoiler_depth) {
+        let spoiler_content_end_index =
+            (spoiler_content_start_index..state.line_max).find(|&i| {
+                match (state.get_line(i).trim_end(), &mut spoiler_depth) {
+                    // If the end of a nested spoiler block is detected, decrease depth size and keep going
                     (line, depth @ 1..) if line == SPOILER_GATE_END => {
                         *depth -= 1;
                         false
                     }
+                    // If the start of a nested spoiler block is detected, increase depth and keep going
                     (line, depth) if is_valid_block_start(line) => {
                         *depth += 1;
                         false
                     }
+                    // If not the start or end of a nested spoiler block, test if line is the end of a non-nested spoiler block
                     (line, _) => line == SPOILER_GATE_END,
-                },
-            )?
-            - 1;
+                }
+            })?;
 
         let (spoiler_content, mapping) = state.get_lines(
             spoiler_content_start_index,
@@ -87,6 +88,7 @@ impl BlockRule for BlockSpoilerScanner {
             // Using split_whitespace and skip here because number of spaces from ":::" to "spoiler" and "spoiler" to visible text is arbitrary,
             // and current implementation in lemmy-ui strips out extra whitespace between words in visible text.
             // Intersperse guarantees there are still spaces between visible text words.
+            #[allow(unstable_name_collisions)]
             visible_text: first_line
                 .split_whitespace()
                 .skip(2)
@@ -96,10 +98,7 @@ impl BlockRule for BlockSpoilerScanner {
         node.children
             .push(Node::new(InlineRoot::new(spoiler_content, mapping)));
 
-        Some((
-            node,
-            spoiler_content_end_index - spoiler_content_start_index,
-        ))
+        Some((node, (spoiler_content_end_index - state.line) + 1))
     }
 }
 
@@ -108,3 +107,55 @@ pub fn add(md: &mut MarkdownIt) {
 }
 
 // TODO: Write tests
+#[cfg(test)]
+mod tests {
+    use crate::add;
+    use markdown_it::{
+        plugins::{cmark, extra},
+        MarkdownIt,
+    };
+    use rstest::rstest;
+    use std::sync::LazyLock;
+
+    static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
+        let mut parser = MarkdownIt::new();
+        cmark::add(&mut parser);
+        extra::add(&mut parser);
+        add(&mut parser);
+
+        parser
+    });
+
+    #[rstest]
+    #[case(
+        "::: spoiler click to see more\nbut I never finished",
+        "<p>::: spoiler click to see more\nbut I never finished</p>\n"
+    )]
+    #[case(
+        "::: spoiler\nnever added the lead in\n:::",
+        "<p>::: spoiler\nnever added the lead in\n:::</p>\n"
+    )]
+    #[case(
+        "::: spoiler click to see more\nhow spicy!\n:::",
+        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
+    )]
+    #[case(
+        "::: spoiler click to see more\nhow spicy!\n:::\n",
+        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
+    )]
+    #[case(
+        "::: spoiler _click to see more_\nhow spicy!\n:::\n",
+        "<details><summary>_click to see more_</summary>how spicy!\n</details>\n"
+    )]
+    #[case("::: spoiler click to see more\n**how spicy!**\n*i have many lines*\n:::\n",
+        "<details><summary>click to see more</summary><strong>how spicy!</strong>\n<em>i have many lines</em>\n</details>\n")]
+    #[case("hey you\npsst, wanna hear a secret?\n::: spoiler lean in and i'll tell you\n**you are breathtaking!**\n:::\nwhatcha think about that?",
+        "<p>hey you\npsst, wanna hear a secret?</p>\n<details><summary>lean in and i'll tell you</summary><strong>you are breathtaking!</strong>\n</details>\n<p>whatcha think about that?</p>\n")]
+    #[case("- did you know that\n::: spoiler the call was\n***coming from inside the house!***\n:::\n - crazy, right?",
+        "<ul>\n<li>did you know that</li>\n</ul>\n<details><summary>the call was</summary><em><strong>coming from inside the house!</strong></em>\n</details>\n<ul>\n<li>crazy, right?</li>\n</ul>\n")]
+    fn test(#[case] md_str: &str, #[case] expected: &str) {
+        let result = MARKDOWN_PARSER.parse(md_str).xrender();
+
+        assert_eq!(result, String::from(expected));
+    }
+}
