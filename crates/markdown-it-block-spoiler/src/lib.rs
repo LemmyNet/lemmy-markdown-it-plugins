@@ -49,8 +49,6 @@ fn is_valid_block_start(line: &str) -> bool {
 
 impl BlockRule for BlockSpoilerScanner {
     fn run(state: &mut BlockState) -> Option<(Node, usize)> {
-        const SPOILER_GATE_END: &str = ":::";
-
         // Using trim_end since get_line already trims the start
         let first_line = state.get_line(state.line).trim_end();
 
@@ -59,24 +57,8 @@ impl BlockRule for BlockSpoilerScanner {
         }
 
         let spoiler_content_start_index = state.line + 1;
-        let mut spoiler_depth: usize = 0;
-        let spoiler_content_end_index =
-            (spoiler_content_start_index..state.line_max).find(|&i| {
-                match (state.get_line(i).trim_end(), &mut spoiler_depth) {
-                    // If the end of a nested spoiler block is detected, decrease depth size and keep going
-                    (line, depth @ 1..) if line == SPOILER_GATE_END => {
-                        *depth -= 1;
-                        false
-                    }
-                    // If the start of a nested spoiler block is detected, increase depth and keep going
-                    (line, depth) if is_valid_block_start(line) => {
-                        *depth += 1;
-                        false
-                    }
-                    // If not the start or end of a nested spoiler block, test if line is the end of a non-nested spoiler block
-                    (line, _) => line == SPOILER_GATE_END,
-                }
-            })?;
+        let spoiler_content_end_index = (spoiler_content_start_index..state.line_max)
+            .find(|&i| state.get_line(i).trim_end() == ":::")?;
 
         let (spoiler_content, mapping) = state.get_lines(
             spoiler_content_start_index,
@@ -106,7 +88,6 @@ pub fn add(md: &mut MarkdownIt) {
     md.block.add_rule::<BlockSpoilerScanner>();
 }
 
-// TODO: Write tests
 #[cfg(test)]
 mod tests {
     use crate::add;
