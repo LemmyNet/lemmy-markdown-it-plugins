@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://img.shields.io/github/license/LemmyNet/lemmy-markdown-it-plugins?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/github/last-commit/LemmyNet/lemmy-markdown-it-plugins?style=for-the-badge&logo=GitHub" alt="Last commit" />
   <img src="https://img.shields.io/github/stars/LemmyNet/lemmy-markdown-it-plugins?style=for-the-badge&logo=GitHub" alt="Github stars" />
 </div>
