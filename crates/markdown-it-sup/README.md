@@ -5,7 +5,7 @@
 </div>
 # markdown-it-sup.rs
 
-A A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process superscript.
+A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process superscript.
 
 To load the plugin:
 
