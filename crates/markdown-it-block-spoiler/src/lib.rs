@@ -20,7 +20,6 @@
 //! markdown-it-spoiler = { version = "1", default-features = false, features = ["browser"] }
 //! ```
 
-use cfg_if::cfg_if;
 use itertools::Itertools;
 use markdown_it::{
     parser::{
@@ -29,7 +28,6 @@ use markdown_it::{
     },
     MarkdownIt, Node, NodeValue,
 };
-use std::sync::LazyLock;
 
 #[derive(Debug)]
 struct BlockSpoiler {
@@ -51,32 +49,17 @@ impl NodeValue for BlockSpoiler {
 
 struct BlockSpoilerScanner;
 
-fn is_valid_block_start(line: &str) -> bool {
-    const REGEX_STR: &str = r"^::: +spoiler +(?:\S+ *)+$";
-
-    cfg_if! {
-        if #[cfg(feature = "browser")] {
-            use js_sys::RegExp;
-            thread_local! {
-                static SPOILER_START_REGEX: LazyLock<RegExp> = LazyLock::new(|| RegExp::new(REGEX_STR, "u"));
-            }
-
-            SPOILER_START_REGEX.with(|reg_exp| reg_exp.test(line))
-        } else {
-            use regex::Regex;
-            static SPOLIER_START_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_STR).expect("Invalid regex str!"));
-
-            SPOLIER_START_REGEX.is_match(line)
-        }
-    }
-}
-
 impl BlockRule for BlockSpoilerScanner {
     fn run(state: &mut BlockState) -> Option<(Node, usize)> {
-        // Using trim_end since get_line already trims the start
-        let first_line = state.get_line(state.line).trim_end();
+        // Using split_whitespace and skip here because number of spaces from ":::" to "spoiler" and "spoiler" to visible text is arbitrary,
+        // and current implementation in lemmy-ui strips out extra whitespace between words in visible text.
+        let mut first_line_words = state.get_line(state.line).split_whitespace().peekable();
 
-        if !is_valid_block_start(first_line) {
+        // The order these iterator methods are called in is essential
+        if !(first_line_words.next()? == ":::"
+            && first_line_words.next()? == "spoiler"
+            && first_line_words.peek().is_some())
+        {
             return None;
         }
 
@@ -91,13 +74,9 @@ impl BlockRule for BlockSpoilerScanner {
             true,
         );
         let mut node = Node::new(BlockSpoiler {
-            // Using split_whitespace and skip here because number of spaces from ":::" to "spoiler" and "spoiler" to visible text is arbitrary,
-            // and current implementation in lemmy-ui strips out extra whitespace between words in visible text.
             // Intersperse guarantees there are still spaces between visible text words.
             #[allow(unstable_name_collisions)]
-            visible_text: first_line
-                .split_whitespace()
-                .skip(2)
+            visible_text: first_line_words
                 .intersperse(" ") // TODO: Use intersperse function from std once it makes it to a stable version: https://github.com/rust-lang/rust/issues/79524
                 .collect(),
         });

@@ -18,9 +18,3 @@ markdown_it_block_spoiler::add(&mut parser);
 let html = parser.parse("::: spoiler _click to see more_\nhow spicy!\n:::\n").xrender();
 assert_eq!(html, String::from("<details><summary>_click to see more_</summary>how spicy!\n</details>\n"));
 ```
-
-If you are using this plugin in the browser, you can use the "browser" feature to have this library use built-in browser libraries to keep the bundle size down.
-
-``` toml
-markdown-it-spoiler = { version = "1", default-features = false, features = ["browser"] }
-```
