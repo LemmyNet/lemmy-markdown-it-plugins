@@ -3,6 +3,7 @@
   <img src="https://img.shields.io/crates/v/markdown-it-ruby?style=for-the-badge" alt="Latest version" />
   <img src="https://img.shields.io/crates/dv/markdown-it-ruby?style=for-the-badge" alt="Downloads for latest version" />
 </div>
+
 # markdown-it-ruby.rs
 
 A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process [ruby text](https://en.wikipedia.org/wiki/Ruby_character).
