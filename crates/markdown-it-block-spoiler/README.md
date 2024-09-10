@@ -11,14 +11,12 @@ To load the plugin:
 
 ```rust
 let mut parser = markdown_it::MarkdownIt::new();
-markdown_it::plugins::cmark::add(parser);
+markdown_it::plugins::cmark::add(&mut parser);
 
 markdown_it_block_spoiler::add(&mut parser);
 
-let html = parser.parse(r"::: spolier Click me to reveal my secrets
-Arcane knowledge beyond human comprehension.
-Can you handle this information without losing your mind?
-:::").xrender();
+let html = parser.parse("::: spoiler _click to see more_\nhow spicy!\n:::\n").xrender();
+assert_eq!(html, String::from("<details><summary>_click to see more_</summary>how spicy!\n</details>\n"));
 ```
 
 If you are using this plugin in the browser, you can use the "browser" feature to have this library use built-in browser libraries to keep the bundle size down.

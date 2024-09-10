@@ -16,4 +16,5 @@ markdown_it::plugins::cmark::add(&mut parser);
 markdown_it_sup::add(&mut parser);
 
 let html = parser.parse("Markdown^TM^").xrender();
+assert_eq!(html, String::from("<p>Markdown<sup>TM</sup></p>\n"));
 ```

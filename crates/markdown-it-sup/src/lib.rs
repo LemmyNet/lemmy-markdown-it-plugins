@@ -5,7 +5,6 @@
 //! ```rust
 //! # use markdown_it;
 //! # use markdown_it_sup;
-//!
 //! let mut parser = markdown_it::MarkdownIt::new();
 //! markdown_it::plugins::cmark::add(&mut parser);
 //!

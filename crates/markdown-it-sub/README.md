@@ -16,4 +16,5 @@ markdown_it::plugins::cmark::add(&mut parser);
 markdown_it_sub::add(&mut parser);
 
 let html = parser.parse("log~2~(a)").xrender();
+assert_eq!(html, "<p>log<sub>2</sub>(a)</p>\n");
 ```

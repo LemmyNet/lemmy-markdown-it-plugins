@@ -1,3 +1,25 @@
+//! A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process block spoliers.
+//!
+//! To load the plugin:
+//!
+//! ```rust
+//! # use markdown_it;
+//! # use markdown_it_block_spoiler;
+//! let mut parser = markdown_it::MarkdownIt::new();
+//! markdown_it::plugins::cmark::add(&mut parser);
+//!
+//! markdown_it_block_spoiler::add(&mut parser);
+//!
+//! let html = parser.parse("::: spoiler _click to see more_\nhow spicy!\n:::\n").xrender();
+//! assert_eq!(html, String::from("<details><summary>_click to see more_</summary>how spicy!\n</details>\n"));
+//! ```
+//!
+//! If you are using this plugin in the browser, you can use the "browser" feature to have this library use built-in browser libraries to keep the bundle size down.
+//!
+//! ``` toml
+//! markdown-it-spoiler = { version = "1", default-features = false, features = ["browser"] }
+//! ```
+
 use cfg_if::cfg_if;
 use itertools::Itertools;
 use markdown_it::{
@@ -10,7 +32,7 @@ use markdown_it::{
 use std::sync::LazyLock;
 
 #[derive(Debug)]
-pub struct BlockSpoiler {
+struct BlockSpoiler {
     visible_text: String,
 }
 
@@ -86,6 +108,7 @@ impl BlockRule for BlockSpoilerScanner {
     }
 }
 
+/// Adds the block spoiler plugin to the parser.
 pub fn add(md: &mut MarkdownIt) {
     md.block.add_rule::<BlockSpoilerScanner>();
 }
