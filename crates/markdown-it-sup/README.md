@@ -11,7 +11,7 @@ To load the plugin:
 
 ```rust
 let mut parser = markdown_it::MarkdownIt::new();
-markdown_it::plugins::cmark::add(parser);
+markdown_it::plugins::cmark::add(&mut parser);
 
 markdown_it_sup::add(&mut parser);
 

@@ -1,7 +1,24 @@
+//! A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process superscript.
+//!
+//! To load the plugin:
+//!
+//! ```rust
+//! # use markdown_it;
+//! # use markdown_it_sup;
+//!
+//! let mut parser = markdown_it::MarkdownIt::new();
+//! markdown_it::plugins::cmark::add(&mut parser);
+//!
+//! markdown_it_sup::add(&mut parser);
+//!
+//! let html = parser.parse("Markdown^TM^").xrender();
+//! assert_eq!(html, String::from("<p>Markdown<sup>TM</sup></p>\n"));
+//!```
+
 use markdown_it::{generics::inline::emph_pair, MarkdownIt, Node, NodeValue, Renderer};
 
 #[derive(Debug)]
-pub struct Sup;
+struct Sup;
 
 impl NodeValue for Sup {
     fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
@@ -11,6 +28,7 @@ impl NodeValue for Sup {
     }
 }
 
+/// Adds the superscript plugin to the parser.
 pub fn add(md: &mut MarkdownIt) {
     emph_pair::add_with::<'^', 1, true>(md, || Node::new(Sup));
 }

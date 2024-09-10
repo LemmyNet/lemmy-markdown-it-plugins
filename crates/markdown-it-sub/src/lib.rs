@@ -1,7 +1,24 @@
+//! A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process subscript.
+//!
+//! To load the plugin:
+//!
+//! ```rust
+//! # use markdown_it;
+//! # use markdown_it_sub;
+//!
+//! let mut parser = markdown_it::MarkdownIt::new();
+//! markdown_it::plugins::cmark::add(&mut parser);
+//!
+//! markdown_it_sub::add(&mut parser);
+//!
+//! let html = parser.parse("log~2~(a)").xrender();
+//! assert_eq!(html, "<p>log<sub>2</sub>(a)</p>\n");
+//! ```
+
 use markdown_it::{generics::inline::emph_pair, MarkdownIt, Node, NodeValue, Renderer};
 
 #[derive(Debug)]
-pub struct Sub;
+struct Sub;
 
 impl NodeValue for Sub {
     fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
@@ -11,6 +28,7 @@ impl NodeValue for Sub {
     }
 }
 
+/// Adds the subscript plugin to the parser.
 pub fn add(md: &mut MarkdownIt) {
     emph_pair::add_with::<'~', 1, true>(md, || Node::new(Sub));
 }
