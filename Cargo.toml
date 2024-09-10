@@ -7,4 +7,4 @@ edition = "2021"
 
 [workspace.dependencies]
 markdown-it = { version = "0.6", default-features = false }
-rstest = "0.22.0"
+rstest = "0.22"
