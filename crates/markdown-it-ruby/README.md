@@ -11,15 +11,10 @@ To load the plugin:
 
 ```rust
 let mut parser = markdown_it::MarkdownIt::new();
-markdown_it::plugins::cmark::add(parser);
+markdown_it::plugins::cmark::add(&mut parser);
 
 markdown_it_ruby::add(&mut parser);
 
 let html = parser.parse("{漢|Kan}{字|ji}").xrender();
-```
-
-If you are using this plugin in the browser, you can use the "browser" feature to have this library use built-in browser libraries to keep the bundle size down.
-
-``` toml
-markdown-it-ruby = { version = "1", default-features = false, features = ["browser"] }
+assert_eq!(html, String::from("<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"));
 ```

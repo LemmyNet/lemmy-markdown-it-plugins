@@ -1,5 +1,18 @@
-use cfg_if::cfg_if;
-use std::sync::LazyLock;
+//! A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process [ruby text](https://en.wikipedia.org/wiki/Ruby_character).
+//!
+//! To load the plugin:
+//!
+//! ```rust
+//! # use markdown_it;
+//! # use markdown_it_ruby;
+//! let mut parser = markdown_it::MarkdownIt::new();
+//! markdown_it::plugins::cmark::add(&mut parser);
+//!
+//! markdown_it_ruby::add(&mut parser);
+//!
+//! let html = parser.parse("{漢|Kan}{字|ji}").xrender();
+//! assert_eq!(html, String::from("<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"));
+//! ```
 
 use markdown_it::{
     parser::inline::{InlineRule, InlineState},
@@ -35,42 +48,22 @@ impl NodeValue for Ruby {
 
 struct RubyScanner;
 
-fn get_texts(search_str: &str) -> Option<(String, String)> {
-    const REGEX_PATTERN: &str = r"\{( *[\S]+ *)+\|( *[\S]+ *)+\}";
-
-    cfg_if! {
-        if #[cfg(feature = "browser")] {
-            use js_sys::RegExp;
-            thread_local! {
-                static RUBY_REGEX: LazyLock<RegExp> = LazyLock::new(|| RegExp::new(REGEX_PATTERN, "u"));
-            }
-
-            let capture_groups = RUBY_REGEX.with(|reg_exp| reg_exp.exec(search_str))?;
-            Some((capture_groups.get(1).as_string()?, capture_groups.get(2).as_string()?))
-        } else {
-            use regex::Regex;
-            static RUBY_REGEX: LazyLock<Regex> =
-                LazyLock::new(|| Regex::new(REGEX_PATTERN).expect("Invalid ruby regex"));
-
-            let capture_groups = RUBY_REGEX.captures(search_str)?;
-            Some((capture_groups.get(0)?.as_str().into(), capture_groups.get(1)?.as_str().into()))
-        }
-    }
-}
-
 impl InlineRule for RubyScanner {
     const MARKER: char = '{';
 
     fn run(state: &mut InlineState) -> Option<(Node, usize)> {
-        let input = &state.src[state.pos..state.pos_max];
-        let (base_text, ruby_text) = get_texts(input)?;
+        let end_pos = state.src[state.pos..state.pos_max]
+            .char_indices()
+            .find_map(|(i, c)| (c == '}').then_some(i))?
+            + state.pos;
+        let (base_text, ruby_text) = state.src[state.pos + 1..end_pos].split_once('|')?;
 
         Some((
             Node::new(Ruby {
-                base_text,
-                ruby_text,
+                base_text: base_text.trim().into(),
+                ruby_text: ruby_text.trim().into(),
             }),
-            state.pos_max - state.pos,
+            (end_pos - state.pos) + 1,
         ))
     }
 }
