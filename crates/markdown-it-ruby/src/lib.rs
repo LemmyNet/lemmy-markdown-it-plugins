@@ -59,17 +59,42 @@ impl InlineRule for RubyScanner {
             return None;
         }
 
-        let pos = state.pos + 1;
+        let mut prev_char_escaped = false;
 
-        let end_pos = char_indices.find_map(|(i, c)| (c == '}').then_some(i))? + state.pos;
-        let (base_text, ruby_text) = state.src[pos..end_pos].split_once('|')?;
+        let base_end_pos = char_indices.find_map(|(i, c)| {
+            if c == '\\' {
+                prev_char_escaped = true;
+                return None;
+            }
+
+            let index = (c == '|' && !prev_char_escaped).then_some(i);
+            prev_char_escaped = false;
+
+            index
+        })? + state.pos;
+
+        let base_text = &state.src[state.pos + 1..base_end_pos];
+
+        let ruby_end_pos = char_indices.skip(2).find_map(|(i, c)| {
+            if c == '\\' {
+                prev_char_escaped = true;
+                return None;
+            }
+
+            let index = (c == '}' && !prev_char_escaped).then_some(i);
+            prev_char_escaped = false;
+
+            index
+        })? + state.pos;
+
+        let ruby_text = &state.src[base_end_pos + 1..ruby_end_pos];
 
         Some((
             Node::new(Ruby {
                 base_text: base_text.trim().into(),
                 ruby_text: ruby_text.trim().into(),
             }),
-            (end_pos - pos) + 2,
+            (ruby_end_pos - state.pos) + 1,
         ))
     }
 }
@@ -102,6 +127,10 @@ mod test {
     #[case(
         "\\{foo|bar}{baz|qux}",
         "<p>{foo|bar}<ruby>baz<rp>(</rp><rt>qux</rt><rp>)</rp></ruby></p>\n"
+    )]
+    #[case(
+        "{foo|bar}{baz\\|qux}",
+        "<p><ruby>foo<rp>(</rp><rt>bar</rt><rp>)</rp></ruby>{baz|qux}</p>\n"
     )]
     fn test(#[case] md_str: &str, #[case] expected: &str) {
         let result = MARKDOWN_PARSER.parse(md_str).xrender();
