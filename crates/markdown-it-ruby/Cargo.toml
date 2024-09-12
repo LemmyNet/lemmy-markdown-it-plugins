@@ -2,6 +2,12 @@
 name = "markdown-it-ruby"
 version = "1.0.0"
 edition.workspace = true
+license = "GPL-3.0"
+authors = ["SleeplessOne1917"]
+description = "A markdown-it plugin for parsing ruby text"
+repository = "https://github.com/LemmyNet/lemmy-markdown-it-plugins"
+keywords = ["markdown", "markdown-it", "ruby-text", "plugin"]
+categories = ["encoding", "parsing", "text-processing"]
 
 [dependencies]
 itertools = "0.13"
