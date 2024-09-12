@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/crates/dv/markdown-it-block-spoiler?style=for-the-badge" alt="Downloads for latest version" />
 </div>
 
-# markdown-it-spoiler.rs
+# markdown-it-block-spoiler.rs
 
 A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process block spoliers.
 
