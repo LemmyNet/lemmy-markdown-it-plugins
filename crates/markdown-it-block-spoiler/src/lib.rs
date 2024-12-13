@@ -24,8 +24,8 @@ use markdown_it::{
 };
 
 #[derive(Debug)]
-struct BlockSpoiler {
-    visible_text: String,
+pub struct BlockSpoiler {
+    pub visible_text: String,
 }
 
 impl NodeValue for BlockSpoiler {

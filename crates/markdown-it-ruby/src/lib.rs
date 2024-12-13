@@ -22,8 +22,8 @@ use markdown_it::{
 
 #[derive(Debug)]
 pub struct Ruby {
-    base_text: String,
-    ruby_text: String,
+    pub base_text: String,
+    pub ruby_text: String,
 }
 
 impl NodeValue for Ruby {

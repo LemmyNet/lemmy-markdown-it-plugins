@@ -17,7 +17,7 @@
 use markdown_it::{generics::inline::emph_pair, MarkdownIt, Node, NodeValue, Renderer};
 
 #[derive(Debug)]
-struct Sup;
+pub struct Sup;
 
 impl NodeValue for Sup {
     fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
