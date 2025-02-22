@@ -1,6 +1,6 @@
 [package]
 name = "markdown-it-block-spoiler"
-version = "1.0.1"
+version = "1.0.2"
 edition.workspace = true
 license = "GPL-3.0"
 authors = ["SleeplessOne1917"]
@@ -12,7 +12,7 @@ categories = ["encoding", "parsing", "text-processing"]
 
 [dependencies]
 markdown-it.workspace = true
-itertools = "0.13"
+itertools = "0.14"
 
 [dev-dependencies]
 rstest.workspace = true

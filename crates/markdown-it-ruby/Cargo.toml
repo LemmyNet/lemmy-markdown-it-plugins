@@ -1,6 +1,6 @@
 [package]
 name = "markdown-it-ruby"
-version = "1.0.1"
+version = "1.0.2"
 edition.workspace = true
 license = "GPL-3.0"
 authors = ["SleeplessOne1917"]
@@ -10,7 +10,7 @@ keywords = ["markdown", "markdown-it", "ruby-text", "plugin"]
 categories = ["encoding", "parsing", "text-processing"]
 
 [dependencies]
-itertools = "0.13"
+itertools = "0.14"
 markdown-it.workspace = true
 
 [dev-dependencies]
