@@ -1,4 +1,4 @@
-//! A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process block spoliers.
+//! A [`markdown-it`](https://crates.io/crates/markdown-it) plugin to process block spoilers.
 //!
 //! To load the plugin:
 //!
