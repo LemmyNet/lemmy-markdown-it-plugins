@@ -67,7 +67,7 @@ fn find_text_end_index<const BREAK_CHAR: char>(
 
 fn prepare_text(text: &str) -> String {
     // Intersperse guarantees there are still spaces between visible text words.
-    #[allow(unstable_name_collisions)]
+    #[expect(unstable_name_collisions)]
     text.split_whitespace()
         .intersperse(" ") // TODO: Use intersperse function from std once it makes it to a stable version: https://github.com/rust-lang/rust/issues/79524
         .collect::<String>()
