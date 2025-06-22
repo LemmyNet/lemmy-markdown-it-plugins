@@ -20,7 +20,7 @@ use markdown_it::{
         block::{BlockRule, BlockState},
         inline::InlineRoot,
     },
-    MarkdownIt, Node, NodeValue,
+    MarkdownIt, Node, NodeValue, Renderer,
 };
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub struct BlockSpoiler {
 }
 
 impl NodeValue for BlockSpoiler {
-    fn render(&self, node: &Node, fmt: &mut dyn markdown_it::Renderer) {
+    fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
         fmt.cr();
         fmt.open("details", &node.attrs);
         fmt.open("summary", &[]);
@@ -43,8 +43,8 @@ impl NodeValue for BlockSpoiler {
 
 struct BlockSpoilerScanner;
 
-impl BlockRule for BlockSpoilerScanner {
-    fn run(state: &mut BlockState) -> Option<(Node, usize)> {
+impl BlockSpoilerScanner {
+    fn get_header(state: &mut BlockState) -> Option<(usize, String)> {
         // Using split_whitespace and skip here because number of spaces from ":::" to "spoiler" and "spoiler" to visible text is arbitrary,
         // and current implementation in lemmy-ui strips out extra whitespace between words in visible text.
         let mut first_line_words = state.get_line(state.line).split_whitespace().peekable();
@@ -57,6 +57,24 @@ impl BlockRule for BlockSpoilerScanner {
             return None;
         }
 
+        // Intersperse guarantees there are still spaces between visible text words.
+        #[expect(unstable_name_collisions)]
+        let visible_text = first_line_words
+            .intersperse(" ") // TODO: Use intersperse function from std once it makes it to a stable version: https://github.com/rust-lang/rust/issues/79524
+            .collect();
+
+        Some((3, visible_text))
+    }
+}
+
+impl BlockRule for BlockSpoilerScanner {
+    fn check(state: &mut BlockState) -> Option<()> {
+        Self::get_header(state).map(|_| ())
+    }
+
+    fn run(state: &mut BlockState) -> Option<(Node, usize)> {
+        let (_, visible_text) = Self::get_header(state)?;
+
         let spoiler_content_start_index = state.line + 1;
         let spoiler_content_end_index = (spoiler_content_start_index..state.line_max)
             .find(|&i| state.get_line(i).trim_end() == ":::")?;
@@ -67,13 +85,7 @@ impl BlockRule for BlockSpoilerScanner {
             state.blk_indent,
             true,
         );
-        let mut node = Node::new(BlockSpoiler {
-            // Intersperse guarantees there are still spaces between visible text words.
-            #[expect(unstable_name_collisions)]
-            visible_text: first_line_words
-                .intersperse(" ") // TODO: Use intersperse function from std once it makes it to a stable version: https://github.com/rust-lang/rust/issues/79524
-                .collect(),
-        });
+        let mut node = Node::new(BlockSpoiler { visible_text });
         node.children
             .push(Node::new(InlineRoot::new(spoiler_content, mapping)));
 
