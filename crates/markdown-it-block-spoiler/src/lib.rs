@@ -23,6 +23,8 @@ use markdown_it::{
     MarkdownIt, Node, NodeValue, Renderer,
 };
 
+const MARKER_CHAR: char = ':';
+
 #[derive(Debug)]
 pub struct BlockSpoiler {
     pub visible_text: String,
@@ -45,12 +47,20 @@ struct BlockSpoilerScanner;
 
 impl BlockSpoilerScanner {
     fn get_header(state: &mut BlockState) -> Option<(usize, String)> {
+        if state.line_indent(state.line) >= state.md.max_indent {
+            return None;
+        }
+
         // Using split_whitespace and skip here because number of spaces from ":::" to "spoiler" and "spoiler" to visible text is arbitrary,
         // and current implementation in lemmy-ui strips out extra whitespace between words in visible text.
         let mut first_line_words = state.get_line(state.line).split_whitespace().peekable();
 
+        let marker_len = first_line_words
+            .next_if(|word| word.chars().all(|c| c == MARKER_CHAR))?
+            .len();
+
         // The order these iterator methods are called in is essential
-        if !(first_line_words.next()? == ":::"
+        if !(marker_len >= 3
             && first_line_words.next()? == "spoiler"
             && first_line_words.peek().is_some())
         {
@@ -63,7 +73,7 @@ impl BlockSpoilerScanner {
             .intersperse(" ") // TODO: Use intersperse function from std once it makes it to a stable version: https://github.com/rust-lang/rust/issues/79524
             .collect();
 
-        Some((3, visible_text))
+        Some((marker_len, visible_text))
     }
 }
 
