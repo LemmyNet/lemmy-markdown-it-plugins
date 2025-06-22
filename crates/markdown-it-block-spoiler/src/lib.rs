@@ -51,7 +51,7 @@ impl BlockSpoilerScanner {
             return None;
         }
 
-        // Using split_whitespace and skip here because number of spaces from ":::" to "spoiler" and "spoiler" to visible text is arbitrary,
+        // Using split_whitespace and skip here because number of spaces from the marker to "spoiler" and "spoiler" to visible text is arbitrary,
         // and current implementation in lemmy-ui strips out extra whitespace between words in visible text.
         let mut first_line_words = state.get_line(state.line).split_whitespace().peekable();
 
@@ -59,8 +59,9 @@ impl BlockSpoilerScanner {
             .next_if(|word| word.chars().all(|c| c == MARKER_CHAR))?
             .len();
 
-        // The order these iterator methods are called in is essential
         if !(marker_len >= 3
+            // These iterator method calls need to be in the order they're in
+            // so that "spoiler" gets consumed and the visible text doesn't
             && first_line_words.next()? == "spoiler"
             && first_line_words.peek().is_some())
         {
