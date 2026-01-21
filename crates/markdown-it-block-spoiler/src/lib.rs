@@ -157,6 +157,8 @@ mod tests {
         "<p>hey you\npsst, wanna hear a secret?</p>\n<details><summary>lean in and i'll tell you</summary><strong>you are breathtaking!</strong>\n</details>\n<p>whatcha think about that?</p>\n")]
     #[case("- did you know that\n::: spoiler the call was\n***coming from inside the house!***\n:::\n - crazy, right?",
         "<ul>\n<li>did you know that</li>\n</ul>\n<details><summary>the call was</summary><em><strong>coming from inside the house!</strong></em>\n</details>\n<ul>\n<li>crazy, right?</li>\n</ul>\n")]
+    #[case("\n::: spoiler 1\n\n\n::: spoiler 2\n::: spoiler 3\n::: spoiler 4\n::: spoiler 5\n::: spoiler 6\n::: spoiler 7\n::: spoiler 8\n\n:::\n\n\nThis could probably be used to make a choose your own adventure game, provided your client can handle it.\n\n",
+    "<div><details><summary>1</summary>\n<details><summary>2</summary>\n<details><summary>3</summary>\n<details><summary>4</summary>\n<details><summary>5</summary>\n<details><summary>6</summary>\n<details><summary>7</summary>\n<details><summary>8</summary>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n<p>This could probably be used to make a choose your own adventure game, provided your client can handle it.</p>\n")]
     fn test(#[case] md_str: &str, #[case] expected: &str) {
         let result = MARKDOWN_PARSER.parse(md_str).xrender();
 
