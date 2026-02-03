@@ -14,12 +14,11 @@
 //! assert_eq!(html, String::from("<details><summary>_click to see more_</summary>how spicy!\n</details>\n"));
 //! ```
 
+use std::mem;
+
 use itertools::Itertools;
 use markdown_it::{
-    parser::{
-        block::{BlockRule, BlockState},
-        inline::InlineRoot,
-    },
+    parser::block::{BlockRule, BlockState},
     MarkdownIt, Node, NodeValue, Renderer,
 };
 
@@ -34,10 +33,16 @@ impl NodeValue for BlockSpoiler {
     fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
         fmt.cr();
         fmt.open("details", &node.attrs);
+        fmt.cr();
+
         fmt.open("summary", &[]);
+        fmt.cr();
         fmt.text(&self.visible_text);
+        fmt.cr();
         fmt.close("summary");
+        fmt.cr();
         fmt.contents(&node.children);
+        fmt.cr();
         fmt.close("details");
         fmt.cr();
     }
@@ -88,21 +93,28 @@ impl BlockRule for BlockSpoilerScanner {
     fn run(state: &mut BlockState) -> Option<(Node, usize)> {
         let (_, visible_text) = Self::get_header(state)?;
 
-        let spoiler_content_start_index = state.line + 1;
-        let spoiler_content_end_index = (spoiler_content_start_index..state.line_max)
+        let spoiler_content_start_line = state.line + 1;
+        // TODO: Handle case where spoiler block is closed by parent spoiler block instead of marker
+        let mut spoiler_content_end_line = (spoiler_content_start_line..state.line_max)
             .find(|&i| state.get_line(i).trim_end() == ":::")?;
 
-        let (spoiler_content, mapping) = state.get_lines(
-            spoiler_content_start_index,
-            spoiler_content_end_index,
-            state.blk_indent,
-            true,
-        );
-        let mut node = Node::new(BlockSpoiler { visible_text });
-        node.children
-            .push(Node::new(InlineRoot::new(spoiler_content, mapping)));
+        let old_indent = state.blk_indent;
+        state.blk_indent = 0;
 
-        Some((node, (spoiler_content_end_index - state.line) + 1))
+        // TODO: Explain what's going on here with comments.
+        let old_node = mem::replace(&mut state.node, Node::new(BlockSpoiler { visible_text }));
+        let old_line_max = state.line_max;
+        state.line = spoiler_content_start_line;
+        state.line_max = spoiler_content_end_line;
+        state.md.block.tokenize(state);
+        spoiler_content_end_line = state.line;
+        state.line = spoiler_content_start_line;
+        state.line_max = old_line_max;
+
+        state.blk_indent = old_indent;
+
+        let node = std::mem::replace(&mut state.node, old_node);
+        Some((node, (spoiler_content_end_line - state.line) + 1))
     }
 }
 
@@ -141,24 +153,24 @@ mod tests {
     )]
     #[case(
         "::: spoiler click to see more\nhow spicy!\n:::",
-        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
+        "<details>\n<summary>\nclick to see more\n</summary>\n<p>how spicy!</p>\n</details>\n"
     )]
     #[case(
         "::: spoiler click to see more\nhow spicy!\n:::\n",
-        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
+        "<details>\n<summary>\nclick to see more\n</summary>\n<p>how spicy!</p>\n</details>\n"
     )]
     #[case(
         "::: spoiler _click to see more_\nhow spicy!\n:::\n",
-        "<details><summary>_click to see more_</summary>how spicy!\n</details>\n"
+        "<details>\n<summary>\n_click to see more_\n</summary>\n<p>how spicy!</p>\n</details>\n"
     )]
     #[case("::: spoiler click to see more\n**how spicy!**\n*i have many lines*\n:::\n",
-        "<details><summary>click to see more</summary><strong>how spicy!</strong>\n<em>i have many lines</em>\n</details>\n")]
+        "<details>\n<summary>\nclick to see more\n</summary>\n<p><strong>how spicy!</strong>\n<em>i have many lines</em></p>\n</details>\n")]
     #[case("hey you\npsst, wanna hear a secret?\n::: spoiler lean in and i'll tell you\n**you are breathtaking!**\n:::\nwhatcha think about that?",
-        "<p>hey you\npsst, wanna hear a secret?</p>\n<details><summary>lean in and i'll tell you</summary><strong>you are breathtaking!</strong>\n</details>\n<p>whatcha think about that?</p>\n")]
+        "<p>hey you\npsst, wanna hear a secret?</p>\n<details>\n<summary>\nlean in and i'll tell you\n</summary>\n<p><strong>you are breathtaking!</strong></p>\n</details>\n<p>whatcha think about that?</p>\n")]
     #[case("- did you know that\n::: spoiler the call was\n***coming from inside the house!***\n:::\n - crazy, right?",
-        "<ul>\n<li>did you know that</li>\n</ul>\n<details><summary>the call was</summary><em><strong>coming from inside the house!</strong></em>\n</details>\n<ul>\n<li>crazy, right?</li>\n</ul>\n")]
+        "<ul>\n<li>did you know that</li>\n</ul>\n<details>\n<summary>\nthe call was\n</summary>\n<p><em><strong>coming from inside the house!</strong></em></p>\n</details>\n<ul>\n<li>crazy, right?</li>\n</ul>\n")]
     #[case("\n::: spoiler 1\n\n\n::: spoiler 2\n::: spoiler 3\n::: spoiler 4\n::: spoiler 5\n::: spoiler 6\n::: spoiler 7\n::: spoiler 8\n\n:::\n\n\nThis could probably be used to make a choose your own adventure game, provided your client can handle it.\n\n",
-    "<div><details><summary>1</summary>\n<details><summary>2</summary>\n<details><summary>3</summary>\n<details><summary>4</summary>\n<details><summary>5</summary>\n<details><summary>6</summary>\n<details><summary>7</summary>\n<details><summary>8</summary>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n<p>This could probably be used to make a choose your own adventure game, provided your client can handle it.</p>\n")]
+    "<details><summary>1</summary>\n<details><summary>2</summary>\n<details><summary>3</summary>\n<details><summary>4</summary>\n<details><summary>5</summary>\n<details><summary>6</summary>\n<details><summary>7</summary>\n<details><summary>8</summary>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n<p>This could probably be used to make a choose your own adventure game, provided your client can handle it.</p>\n")]
     fn test(#[case] md_str: &str, #[case] expected: &str) {
         let result = MARKDOWN_PARSER.parse(md_str).xrender();
 
