@@ -94,9 +94,21 @@ impl BlockRule for BlockSpoilerScanner {
         let (_, visible_text) = Self::get_header(state)?;
 
         let spoiler_content_start_line = state.line + 1;
+
+        println!("-------------------");
+        println!("Tegst: {visible_text}");
         // TODO: Handle case where spoiler block is closed by parent spoiler block instead of marker
         let mut spoiler_content_end_line = (spoiler_content_start_line..state.line_max)
-            .find(|&i| state.get_line(i).trim_end() == ":::")?;
+            .find(|&i| {
+                let line = state.get_line(i).trim_end();
+                println!("{i} -- {line}");
+                line == ":::"
+            })
+            .or_else(|| state.node.is::<BlockSpoiler>().then_some(state.line_max))?;
+        println!(
+            "End Line: {spoiler_content_end_line}, Start Line: {}, Line Max: {}, Content Start: {}",
+            state.line, state.line_max, spoiler_content_start_line
+        );
 
         let old_indent = state.blk_indent;
         state.blk_indent = 0;
