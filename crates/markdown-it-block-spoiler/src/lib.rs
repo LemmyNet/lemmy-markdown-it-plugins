@@ -94,21 +94,11 @@ impl BlockRule for BlockSpoilerScanner {
         let (_, visible_text) = Self::get_header(state)?;
 
         let spoiler_content_start_line = state.line + 1;
+        let parent_is_blockspoiler = state.node.is::<BlockSpoiler>();
 
-        println!("-------------------");
-        println!("Tegst: {visible_text}");
-        // TODO: Handle case where spoiler block is closed by parent spoiler block instead of marker
         let mut spoiler_content_end_line = (spoiler_content_start_line..state.line_max)
-            .find(|&i| {
-                let line = state.get_line(i).trim_end();
-                println!("{i} -- {line}");
-                line == ":::"
-            })
+            .find(|&i| state.get_line(i).trim_end() == ":::")
             .or_else(|| state.node.is::<BlockSpoiler>().then_some(state.line_max))?;
-        println!(
-            "End Line: {spoiler_content_end_line}, Start Line: {}, Line Max: {}, Content Start: {}",
-            state.line, state.line_max, spoiler_content_start_line
-        );
 
         let old_indent = state.blk_indent;
         state.blk_indent = 0;
@@ -119,14 +109,24 @@ impl BlockRule for BlockSpoilerScanner {
         state.line = spoiler_content_start_line;
         state.line_max = spoiler_content_end_line;
         state.md.block.tokenize(state);
-        spoiler_content_end_line = state.line;
+        if !parent_is_blockspoiler {
+            spoiler_content_end_line = state.line;
+        }
         state.line = spoiler_content_start_line;
         state.line_max = old_line_max;
 
         state.blk_indent = old_indent;
 
         let node = std::mem::replace(&mut state.node, old_node);
-        Some((node, (spoiler_content_end_line - state.line) + 1))
+        let len = spoiler_content_end_line - state.line;
+        Some((
+            node,
+            len + if len == 1 && parent_is_blockspoiler {
+                0
+            } else {
+                1
+            },
+        ))
     }
 }
 
@@ -182,7 +182,7 @@ mod tests {
     #[case("- did you know that\n::: spoiler the call was\n***coming from inside the house!***\n:::\n - crazy, right?",
         "<ul>\n<li>did you know that</li>\n</ul>\n<details>\n<summary>\nthe call was\n</summary>\n<p><em><strong>coming from inside the house!</strong></em></p>\n</details>\n<ul>\n<li>crazy, right?</li>\n</ul>\n")]
     #[case("\n::: spoiler 1\n\n\n::: spoiler 2\n::: spoiler 3\n::: spoiler 4\n::: spoiler 5\n::: spoiler 6\n::: spoiler 7\n::: spoiler 8\n\n:::\n\n\nThis could probably be used to make a choose your own adventure game, provided your client can handle it.\n\n",
-    "<details><summary>1</summary>\n<details><summary>2</summary>\n<details><summary>3</summary>\n<details><summary>4</summary>\n<details><summary>5</summary>\n<details><summary>6</summary>\n<details><summary>7</summary>\n<details><summary>8</summary>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n<p>This could probably be used to make a choose your own adventure game, provided your client can handle it.</p>\n")]
+    "<details>\n<summary>\n1\n</summary>\n<details>\n<summary>\n2\n</summary>\n<details>\n<summary>\n3\n</summary>\n<details>\n<summary>\n4\n</summary>\n<details>\n<summary>\n5\n</summary>\n<details>\n<summary>\n6\n</summary>\n<details>\n<summary>\n7\n</summary>\n<details>\n<summary>\n8\n</summary>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n</details>\n<p>This could probably be used to make a choose your own adventure game, provided your client can handle it.</p>\n")]
     fn test(#[case] md_str: &str, #[case] expected: &str) {
         let result = MARKDOWN_PARSER.parse(md_str).xrender();
 
