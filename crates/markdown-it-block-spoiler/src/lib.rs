@@ -94,39 +94,32 @@ impl BlockRule for BlockSpoilerScanner {
         let (_, visible_text) = Self::get_header(state)?;
 
         let spoiler_content_start_line = state.line + 1;
-        let parent_is_blockspoiler = state.node.is::<BlockSpoiler>();
-
-        let mut spoiler_content_end_line = (spoiler_content_start_line..state.line_max)
+        let spoiler_content_end_line = (spoiler_content_start_line..state.line_max)
             .find(|&i| state.get_line(i).trim_end() == ":::")
             .or_else(|| state.node.is::<BlockSpoiler>().then_some(state.line_max))?;
 
-        let old_indent = state.blk_indent;
-        state.blk_indent = 0;
+        // Move the new block spoiler node into state.node
+        // to tokenize any potential block children it may have
+        let parent_node = mem::replace(&mut state.node, Node::new(BlockSpoiler { visible_text }));
 
-        // TODO: Explain what's going on here with comments.
-        let old_node = mem::replace(&mut state.node, Node::new(BlockSpoiler { visible_text }));
-        let old_line_max = state.line_max;
+        // Now that state has the block spoiler as its node, need to set line and line_max accordingly.
+        // Also saving the parent values for when the node gets swapped back.
+        let parent_line_max = state.line_max;
+        let parent_line = state.line;
         state.line = spoiler_content_start_line;
         state.line_max = spoiler_content_end_line;
+
         state.md.block.tokenize(state);
-        if !parent_is_blockspoiler {
-            spoiler_content_end_line = state.line;
-        }
-        state.line = spoiler_content_start_line;
-        state.line_max = old_line_max;
 
-        state.blk_indent = old_indent;
+        // Restore parent values before swapping back to parent node.
+        state.line = parent_line;
+        state.line_max = parent_line_max;
 
-        let node = std::mem::replace(&mut state.node, old_node);
-        let len = spoiler_content_end_line - state.line;
-        Some((
-            node,
-            len + if len == 1 && parent_is_blockspoiler {
-                0
-            } else {
-                1
-            },
-        ))
+        // Swap the parent node back with the state node.
+        // node is the (now tokenized) node needed for the return value.
+        let node = mem::replace(&mut state.node, parent_node);
+
+        Some((node, spoiler_content_end_line - state.line + 1))
     }
 }
 
