@@ -11,7 +11,7 @@
 //! markdown_it_block_spoiler::add(&mut parser);
 //!
 //! let html = parser.parse("::: spoiler _click to see more_\nhow spicy!\n:::\n").xrender();
-//! assert_eq!(html, String::from("<details><summary>_click to see more_</summary>how spicy!\n</details>\n"));
+//! assert_eq!(html, String::from("<details>\n<summary>\n_click to see more_\n</summary>\n<p>how spicy!</p>\n</details>\n"));
 //! ```
 
 use std::mem;
